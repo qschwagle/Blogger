@@ -1,49 +1,89 @@
 use actix_web::{get, post, patch, delete, HttpResponse, Responder, web };
 
 use uuid::Uuid;
-use crate::models::user::{NewUser, GetUser, PatchUser, get_user, ApiResponse};
+use crate::models::user::{NewUser, PatchUser, get_user, ApiResponse, create_new_user, patch_user};
 use serde::Deserialize;
 
+use crate::appdata::AppData;
+
 #[get("/api/user/{id}")]
-pub async fn get(web::Path(id): web::Path<Uuid>) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok()
-        .content_type("application/json")
-        .json(get_user().await))
+pub async fn get((app_data, web::Path(id)): (web::Data<AppData>, web::Path<Uuid>)) -> actix_web::Result<HttpResponse> {
+    match get_user(&app_data, &id).await {
+        ApiResponse::UserRetrieved(u) => {
+            Ok(HttpResponse::Ok()
+                .content_type("application/json")
+                .json(u))
+        },
+        _ => {
+            Ok(HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body("{ \"error\": \"Internal Server Error\" }"))
+        }
+    }
 }
 
 
 #[patch("/api/user/{id}")]
-pub async fn patch((web::Path(id), info): (web::Path<Uuid>, web::Json<PatchUser>)) -> impl Responder {
-    HttpResponse::Ok().body("user")
+pub async fn patch((app_data, web::Path(id), info): (web::Data<AppData>, web::Path<Uuid>, web::Json<PatchUser>)) -> actix_web::Result<HttpResponse> {
+    match patch_user(&app_data, &info, &id).await {
+        ApiResponse::UserPatched => {
+            Ok(HttpResponse::Ok()
+                .content_type("application/json")
+                .body("{}"))
+        },
+        ApiResponse::UserNotFound => {
+            Ok(HttpResponse::NotFound()
+                .content_type("application/json")
+                .body("{ \"error\": \"User id was not found\" }"))
+        },
+        _ => {
+            Ok(HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body("{ \"error\": \"Internal Server Error\" }"))
+        }
+    }
 }
 
 
 #[post("/api/user/new")]
-pub async fn post() -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok()
-        .content_type("application/json")
-        .json(get_user().await))
+pub async fn post((new_user, app_data): (web::Json<NewUser>, web::Data<AppData>)) -> actix_web::Result<HttpResponse> {
+    match create_new_user(&app_data, &new_user).await {
+        ApiResponse::UserCreated(u) => {
+            Ok(HttpResponse::Ok()
+                .content_type("application/json")
+                .json(u))
+        },
+        _ => {
+            Ok(HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body("{ \"error\": \"Internal Server Error\" }"))
+        }
+    }
 }
 
 #[derive(Deserialize)]
-struct DeletePassword {
+pub struct DeletePassword {
     password: String
 }
 
 #[delete("/api/user/{id}")]
-pub async fn delete((web::Path(id), web::Query(params)): (web::Path<Uuid>, web::Query<DeletePassword>)) -> impl Responder {
+pub async fn delete((app_data, web::Path(id), web::Query(params)): (web::Data<AppData>, web::Path<Uuid>, web::Query<DeletePassword>)) -> impl Responder {
     use crate::models::user::{delete_user};
-    match delete_user(&id, &params.password).await {
-        UserDeleted => {
-            HttpResponse::Ok().body("")
+    match delete_user(&app_data, &id, &params.password).await {
+        ApiResponse::UserDeleted => {
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body("{}")
         },
-        UserNotFound => {
+        ApiResponse::UserNotFound => {
             HttpResponse::NotFound()
                 .content_type("application/json")
                 .body("{ \"error\": \"User id was not found\" }")
         },
         _ => {
-            HttpResponse::InternalServerError().body("{ \"error\": \"Internal Server Error\" }")
+            HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body("{ \"error\": \"Internal Server Error\" }")
         }
     }
 }

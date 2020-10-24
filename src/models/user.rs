@@ -1,46 +1,36 @@
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
+use sqlx::postgres::PgPool;
+
+
+use crate::appdata::AppData;
+
+use crate::database::user::{create_db_user, get_db_user, delete_db_user, User};
 
 pub enum ApiResponse {
     UserNotFound,
     UserDeleted,
-    NotImplemented
+    UserNotDeleted,
+    NotImplemented,
+    UserCreated(GetUser),
+    UserRetrieved(GetUser),
+    UserRetrieveFailed,
+    UserPatched,
+    UserCreateFailed,
 }
 
-/// represents a User account in the database
-pub struct User {
-    /// uuid associated with account
-    id: Uuid,
-
-    /// next unverified email
-    new_email: Option<String>,
-
-    /// email associated with account <must be unique>
-    /// used for user login
-    email: String,
-
-    /// user name  <must be unique?>
-    /// used for possible user login
-    username: String,
-
-    /// password hash
-    passhash: String,
-
-    /// email confirmed
-    confirmed: bool,
-}
 
 /// new user post request
 #[derive(Serialize, Deserialize)]
 pub struct NewUser {
     /// email for user to be added
-    email: String,
+    pub email: String,
 
     /// username of the account to be added
-    username: String,
+    pub username: String,
 
     /// password of the account to be added
-    password: String,
+    pub password: String,
 }
 
 /// user information to be sent to user
@@ -69,7 +59,24 @@ pub struct PatchUser {
     new_password: Option<String> 
 }
 
-pub async fn get_user() -> GetUser {
+pub async fn create_new_user(app_data: &AppData, nu: &NewUser) -> ApiResponse {
+    match create_db_user(&app_data.pool, nu).await {
+        Ok(id) => {
+            ApiResponse::UserCreated(GetUser{
+                id: id,
+                username: nu.username.clone(),
+                email: nu.email.clone(),
+                confirmed: false
+            })
+        },
+        Err(err) => {
+            eprintln!("create_db_user Error: {}", err);
+            ApiResponse::UserCreateFailed
+        }
+    }
+}
+
+pub async fn mock_get_user() -> GetUser {
     GetUser {
         id: Uuid::new_v4(),
         email: String::from("john@example.com"),
@@ -78,11 +85,39 @@ pub async fn get_user() -> GetUser {
     }
 }
 
-pub async fn patch_user(p: &PatchUser) -> ApiResponse { 
-    ApiResponse::NotImplemented
-
+pub async fn get_user(app_data: &AppData, id: &Uuid) -> ApiResponse {
+    match get_db_user(&app_data.pool, id).await {
+        Ok(Some(user)) => {
+            ApiResponse::UserRetrieved(GetUser {
+                username: user.username,
+                email: user.email,
+                id: id.clone(),
+                confirmed: user.confirmed
+            })
+        },
+        Ok(None) => {
+            ApiResponse::UserNotFound
+        }
+        Err(_) => {
+            ApiResponse::UserRetrieveFailed
+        }
+    }
 }
 
-pub async fn delete_user(id: &Uuid, password: &String) -> ApiResponse {
-    ApiResponse::UserDeleted
+pub async fn patch_user(app_data: &AppData, p: &PatchUser, id: &Uuid) -> ApiResponse { 
+    ApiResponse::NotImplemented
+}
+
+pub async fn delete_user(app_data: &AppData, id: &Uuid, password: &String) -> ApiResponse {
+    match delete_db_user(&app_data.pool, id).await {
+        Ok(true) => {
+            ApiResponse::UserDeleted
+        },
+        Ok(false) => {
+            ApiResponse::UserNotFound
+        }
+        Err(_) => {
+            ApiResponse::UserNotDeleted
+        }
+    }
 }
