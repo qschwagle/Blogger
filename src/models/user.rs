@@ -3,7 +3,8 @@ use serde::{Serialize, Deserialize};
 
 pub enum ApiResponse {
     UserNotFound,
-    UserDeleted
+    UserDeleted,
+    NotImplemented
 }
 
 /// represents a User account in the database
@@ -75,6 +76,11 @@ pub async fn get_user() -> GetUser {
         username: String::from("johndoe"),
         confirmed: true
     }
+}
+
+pub async fn patch_user(p: &PatchUser) -> ApiResponse { 
+    ApiResponse::NotImplemented
+
 }
 
 pub async fn delete_user(id: &Uuid, password: &String) -> ApiResponse {
