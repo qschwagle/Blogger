@@ -105,6 +105,12 @@ pub async fn get_user(app_data: &AppData, id: &Uuid) -> ApiResponse {
 }
 
 pub async fn patch_user(app_data: &AppData, p: &PatchUser, id: &Uuid) -> ApiResponse { 
+    //username
+    //email
+    //new password
+    match patch_db_user(&app_data.pool, id, p.username, p.email, p.new_password) {
+
+    }
     ApiResponse::NotImplemented
 }
 

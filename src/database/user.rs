@@ -65,3 +65,12 @@ pub async fn delete_db_user(pool: &PgPool, id: &Uuid) -> Result<bool, sqlx::Erro
         .execute(pool).await.map(|x| x > 0) 
 }
 
+pub async fn patch_db_user(
+    pool: &PgPool, 
+    id: &Uuid, 
+    username: Option<String>, 
+    email: Option<String>, 
+    new_password: Option<String>) -> Result<bool, sqlx::Error> {
+    Ok(true)
+}
+
