@@ -26,6 +26,9 @@ use routes::tag;
 
 mod models;
 
+use std::sync::{RwLock, Arc};
+use std::collections::HashMap;
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -49,7 +52,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let data = web::Data::new(AppData { pool: pool.clone() });
+    let data = web::Data::new(AppData { pool: pool.clone(), sessions: Arc::new(RwLock::new(HashMap::new())) });
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     HttpServer::new(move || 

@@ -6,19 +6,7 @@ use sqlx::postgres::PgPool;
 use crate::appdata::AppData;
 
 use crate::database::user::{create_db_user, get_db_user, delete_db_user, patch_db_user, User};
-
-pub enum ApiResponse {
-    UserNotFound,
-    UserDeleted,
-    UserNotDeleted,
-    NotImplemented,
-    UserCreated(GetUser),
-    UserRetrieved(GetUser),
-    UserRetrieveFailed,
-    UserPatched,
-    UserCreateFailed,
-    DbError,
-}
+use crate::models::responses::ApiResponse;
 
 
 /// new user post request

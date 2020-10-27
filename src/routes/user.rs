@@ -1,7 +1,8 @@
 use actix_web::{get, post, patch, delete, HttpResponse, Responder, web };
 
 use uuid::Uuid;
-use crate::models::user::{NewUser, PatchUser, get_user, ApiResponse, create_new_user, patch_user};
+use crate::models::user::{NewUser, PatchUser, get_user, create_new_user, patch_user};
+use crate::models::responses::ApiResponse;
 use serde::{Deserialize, Serialize};
 
 use crate::appdata::AppData;
