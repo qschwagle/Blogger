@@ -68,9 +68,35 @@ pub async fn delete_db_user(pool: &PgPool, id: &Uuid) -> Result<bool, sqlx::Erro
 pub async fn patch_db_user(
     pool: &PgPool, 
     id: &Uuid, 
-    username: Option<String>, 
-    email: Option<String>, 
-    new_password: Option<String>) -> Result<bool, sqlx::Error> {
-    Ok(true)
-}
+    username: &Option<String>, 
+    email: &Option<String>, 
+    new_password: &Option<String>) -> Result<bool, sqlx::Error> {
 
+    let mut salt: [u8; 16] = [0; 16];
+    for i in 0..16 {
+        salt[i] = rand::random::<u8>();
+    }
+
+    let user_res = get_db_user(pool, id).await?;
+
+    match user_res {
+        Some(mut user) => {
+            if let Some(name) = username {
+                user.username = name.to_string();
+            }
+            user.new_email = email.clone().map(|x| x.to_string());
+            if let Some(pass) = new_password {
+                user.passhash = argon2::hash_encoded(pass.as_bytes(), &salt, &Config::default()).unwrap();
+            }
+            sqlx::query("UPDATE users SET new_email = $1, passhash = $2, username = $3 WHERE id = $4;")
+                .bind(user.new_email)
+                .bind(user.passhash)
+                .bind(user.username)
+                .bind(id)
+                .execute(pool).await.map(|x| x > 0) 
+        },
+        None => {
+            Ok(false)
+        }
+    }
+}

@@ -2,9 +2,14 @@ use actix_web::{get, post, patch, delete, HttpResponse, Responder, web };
 
 use uuid::Uuid;
 use crate::models::user::{NewUser, PatchUser, get_user, ApiResponse, create_new_user, patch_user};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::appdata::AppData;
+
+#[derive(Serialize)]
+struct Error {
+    error: String
+}
 
 #[get("/api/user/{id}")]
 pub async fn get((app_data, web::Path(id)): (web::Data<AppData>, web::Path<Uuid>)) -> actix_web::Result<HttpResponse> {
@@ -14,10 +19,15 @@ pub async fn get((app_data, web::Path(id)): (web::Data<AppData>, web::Path<Uuid>
                 .content_type("application/json")
                 .json(u))
         },
+        ApiResponse::UserNotFound => {
+            Ok(HttpResponse::NotFound()
+                .content_type("application/json")
+                .json(Error { error: String::from("User Not Found") }))
+        },
         _ => {
             Ok(HttpResponse::InternalServerError()
                 .content_type("application/json")
-                .body("{ \"error\": \"Internal Server Error\" }"))
+                .json(Error { error: String::from("Internal Server Error") }))
         }
     }
 }

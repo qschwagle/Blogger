@@ -67,7 +67,7 @@ async fn main() -> std::io::Result<()> {
         .service(post::patch)
         .service(post::delete)
         )
-        .bind("167.71.169.97:8080")?
+        .bind("157.245.211.33:8080")?
         .run()
         .await
 }

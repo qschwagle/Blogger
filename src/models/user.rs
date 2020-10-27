@@ -5,7 +5,7 @@ use sqlx::postgres::PgPool;
 
 use crate::appdata::AppData;
 
-use crate::database::user::{create_db_user, get_db_user, delete_db_user, User};
+use crate::database::user::{create_db_user, get_db_user, delete_db_user, patch_db_user, User};
 
 pub enum ApiResponse {
     UserNotFound,
@@ -17,6 +17,7 @@ pub enum ApiResponse {
     UserRetrieveFailed,
     UserPatched,
     UserCreateFailed,
+    DbError,
 }
 
 
@@ -98,7 +99,8 @@ pub async fn get_user(app_data: &AppData, id: &Uuid) -> ApiResponse {
         Ok(None) => {
             ApiResponse::UserNotFound
         }
-        Err(_) => {
+        Err(err) => {
+            eprintln!("get_db_user Error: {}", err);
             ApiResponse::UserRetrieveFailed
         }
     }
@@ -108,10 +110,23 @@ pub async fn patch_user(app_data: &AppData, p: &PatchUser, id: &Uuid) -> ApiResp
     //username
     //email
     //new password
-    match patch_db_user(&app_data.pool, id, p.username, p.email, p.new_password) {
+    match patch_db_user(&app_data.pool, id, &p.username, &p.email, &p.new_password).await {
+        Ok(success) => {
+            match success {
+                true => {
+                    ApiResponse::UserPatched
+               },
+                false => {
+                    ApiResponse::UserNotFound
+                }
+            }
+        }
+        Err(err) => {
+            eprintln!("patch_db_user Error:{}", err);
+            ApiResponse::DbError
+        }
 
     }
-    ApiResponse::NotImplemented
 }
 
 pub async fn delete_user(app_data: &AppData, id: &Uuid, password: &String) -> ApiResponse {

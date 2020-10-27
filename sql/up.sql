@@ -1,6 +1,5 @@
 /* REQUIRED FOR gen_random_uuid(), CREATE EXTENSION IF NOT EXISTS pgcrypto; */
 
-
 CREATE TABLE IF NOT EXISTS Users (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     new_email TEXT,
